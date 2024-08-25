@@ -137,32 +137,47 @@ const checklistData = [
 const checklistDiv = document.getElementById('checklist');
 const resetButton = document.getElementById('resetButton');
 
-function createChecklistItem(itemText, isChecked) {
+function createChecklistItem(itemText, isChecked, isHidden) {
   const div = document.createElement('div');
   div.classList.add('item');
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.classList.add('checkbox');
-  checkbox.checked = isChecked; // Set the checkbox to the saved state
-
-  if (isChecked) {
-    div.style.display = 'none'; // Hide the item if it was already checked
-  }
-
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) {
-      div.style.display = 'none'; // Hide the item when checked
-    }
-    saveChecklistState(); // Save the state when a checkbox is changed
-  });
+  checkbox.checked = isChecked;
 
   const label = document.createElement('label');
   label.textContent = itemText;
 
   div.appendChild(checkbox);
   div.appendChild(label);
+
+  if (isHidden) {
+    div.style.display = 'none';
+  }
+
+  checkbox.addEventListener('change', () => {
+    if (checkbox.checked) {
+      hidePreviousItems(div);
+      saveChecklistState();
+    }
+  });
+
   return div;
+}
+
+function hidePreviousItems(currentDiv) {
+  const items = checklistDiv.querySelectorAll('.item');
+  let hide = true;
+
+  items.forEach(item => {
+    if (hide) {
+      item.style.display = 'none';
+    }
+    if (item === currentDiv) {
+      hide = false;
+    }
+  });
 }
 
 function saveChecklistState() {
@@ -175,7 +190,8 @@ function saveChecklistState() {
 
     checklistState.push({
       item: label,
-      checked: checkbox.checked
+      checked: checkbox.checked,
+      hidden: item.style.display === 'none'
     });
   });
 
@@ -191,10 +207,10 @@ function loadChecklistState() {
 }
 
 function resetChecklist() {
-  localStorage.removeItem('checklistState'); // Clear the stored data
-  checklistDiv.innerHTML = ''; // Clear the current checklist
+  localStorage.removeItem('checklistState');
+  checklistDiv.innerHTML = '';
   checklistData.forEach(item => {
-    checklistDiv.appendChild(createChecklistItem(item, false)); // Recreate all items unchecked
+    checklistDiv.appendChild(createChecklistItem(item, false, false));
   });
 }
 
@@ -203,7 +219,8 @@ const savedChecklistState = loadChecklistState();
 checklistData.forEach(item => {
   const savedItem = savedChecklistState ? savedChecklistState.find(saved => saved.item === item) : null;
   const isChecked = savedItem ? savedItem.checked : false;
-  checklistDiv.appendChild(createChecklistItem(item, isChecked));
+  const isHidden = savedItem ? savedItem.hidden : false;
+  checklistDiv.appendChild(createChecklistItem(item, isChecked, isHidden));
 });
 
 // Attach the reset function to the reset button
