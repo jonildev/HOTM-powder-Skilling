@@ -7,6 +7,9 @@ body {
   font-family: 'Rubik', sans-serif;
   background-color: #242424;
   color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 #checklist {
@@ -20,10 +23,26 @@ body {
 .checkbox {
   margin-right: 10px; 
 }
+
+#resetButton {
+  background-color: #ff4c4c;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+#resetButton:hover {
+  background-color: #ff2c2c;
+}
 </style>
 </head>
 <body>
 <div id="checklist"></div>
+
+<button id="resetButton">Reset Data</button>
 
 <script>
 const checklistData = [
@@ -116,17 +135,26 @@ const checklistData = [
 ];
 
 const checklistDiv = document.getElementById('checklist');
+const resetButton = document.getElementById('resetButton');
 
-function createChecklistItem(itemText) {
+function createChecklistItem(itemText, isChecked) {
   const div = document.createElement('div');
   div.classList.add('item');
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.classList.add('checkbox');
+  checkbox.checked = isChecked; // Set the checkbox to the saved state
+
+  if (isChecked) {
+    div.style.display = 'none'; // Hide the item if it was already checked
+  }
+
   checkbox.addEventListener('change', () => {
-    div.remove();
-    updateChecklistPositions();
+    if (checkbox.checked) {
+      div.style.display = 'none'; // Hide the item when checked
+    }
+    saveChecklistState(); // Save the state when a checkbox is changed
   });
 
   const label = document.createElement('label');
@@ -137,18 +165,49 @@ function createChecklistItem(itemText) {
   return div;
 }
 
-function updateChecklistPositions() {
+function saveChecklistState() {
   const items = checklistDiv.querySelectorAll('.item');
-  items.forEach((item, index) => {
-    item.style.top = `${index * 20}px`;
+  const checklistState = [];
+
+  items.forEach(item => {
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    const label = item.querySelector('label').textContent;
+
+    checklistState.push({
+      item: label,
+      checked: checkbox.checked
+    });
+  });
+
+  localStorage.setItem('checklistState', JSON.stringify(checklistState));
+}
+
+function loadChecklistState() {
+  const savedChecklistState = localStorage.getItem('checklistState');
+  if (savedChecklistState) {
+    return JSON.parse(savedChecklistState);
+  }
+  return null;
+}
+
+function resetChecklist() {
+  localStorage.removeItem('checklistState'); // Clear the stored data
+  checklistDiv.innerHTML = ''; // Clear the current checklist
+  checklistData.forEach(item => {
+    checklistDiv.appendChild(createChecklistItem(item, false)); // Recreate all items unchecked
   });
 }
 
+// Load the checklist items on page load
+const savedChecklistState = loadChecklistState();
 checklistData.forEach(item => {
-  checklistDiv.appendChild(createChecklistItem(item));
+  const savedItem = savedChecklistState ? savedChecklistState.find(saved => saved.item === item) : null;
+  const isChecked = savedItem ? savedItem.checked : false;
+  checklistDiv.appendChild(createChecklistItem(item, isChecked));
 });
 
-updateChecklistPositions();
+// Attach the reset function to the reset button
+resetButton.addEventListener('click', resetChecklist);
 </script>
 
 </body>
